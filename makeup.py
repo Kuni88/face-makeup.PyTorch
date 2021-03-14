@@ -6,9 +6,32 @@ from test import evaluate
 import argparse
 
 
+attr_list = [
+    "skin",
+    "l_brow",
+    "r_brow",
+    "l_eye",
+    "r_eye",
+    "eye_g",
+    "l_ear",
+    "r_ear",
+    "ear_r",
+    "nose",
+    "mouth",
+    "u_lip",
+    "l_lip",
+    "neck",
+    "neck_l",
+    "cloth",
+    "hair",
+    "hat",
+]
+attr_dict = dict([(i + 1, name) for i, name in enumerate(attr_list)])
+
+
 def parse_args():
     parse = argparse.ArgumentParser()
-    parse.add_argument('--img-path', default='imgs/116.jpg')
+    parse.add_argument("--img-path", default="imgs/116.jpg")
     return parse.parse_args()
 
 
@@ -31,8 +54,11 @@ def sharpen(img):
     return np.array(img_out, dtype=np.uint8)
 
 
-def hair(image, parsing, part=17, color=[230, 50, 20]):
-    b, g, r = color      #[10, 50, 250]       # [10, 250, 10]
+def makeup(image, parsing, part_name="skin", color=[230, 50, 20]):
+    if part_name not in attr_dict:
+        return image
+    part = attr_dict[part_name]
+    b, g, r = color  # [10, 50, 250]       # [10, 250, 10]
     tar_color = np.zeros_like(image)
     tar_color[:, :, 0] = b
     tar_color[:, :, 1] = g
@@ -55,53 +81,28 @@ def hair(image, parsing, part=17, color=[230, 50, 20]):
     return changed
 
 
-if __name__ == '__main__':
-    # 1  face
-    # 11 teeth
-    # 12 upper lip
-    # 13 lower lip
-    # 17 hair
-
+if __name__ == "__main__":
     args = parse_args()
 
-    table = {
-        'hair': 17,
-        'upper_lip': 12,
-        'lower_lip': 13
-    }
-
     image_path = args.img_path
-    cp = 'cp/79999_iter.pth'
+    cp = "cp/79999_iter.pth"
 
     image = cv2.imread(image_path)
     ori = image.copy()
     parsing = evaluate(image_path, cp)
     parsing = cv2.resize(parsing, image.shape[0:2], interpolation=cv2.INTER_NEAREST)
 
-    parts = [table['hair'], table['upper_lip'], table['lower_lip']]
+    part_and_color = {
+        # part_name: [B, G, R]
+        "hair": [230, 50, 20],
+        "skin": [130, 169, 240],
+    }
 
-    colors = [[230, 50, 20], [20, 70, 180], [20, 70, 180]]
+    for part, color in part_and_color.items():
+        image = makeup(image, parsing, part, color)
 
-    for part, color in zip(parts, colors):
-        image = hair(image, parsing, part, color)
-
-    cv2.imshow('image', cv2.resize(ori, (512, 512)))
-    cv2.imshow('color', cv2.resize(image, (512, 512)))
+    cv2.imshow("image", cv2.resize(ori, (512, 512)))
+    cv2.imshow("color", cv2.resize(image, (512, 512)))
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
